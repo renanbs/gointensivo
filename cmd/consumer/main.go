@@ -34,8 +34,6 @@ func main() {
 	go rabbitmq.Consume(ch, out)    // T2
 
 	for msg := range out {
-		//println(msg.Body)
-		//log.Info(string(msg.Body))
 		var inputDTO usecase.OrderInputDTO
 		err := json.Unmarshal(msg.Body, &inputDTO)
 		if err != nil {
