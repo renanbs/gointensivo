@@ -10,6 +10,7 @@ import (
 	"github.com/renanbs/gointensivo/internal/order/usecase"
 	"github.com/renanbs/gointensivo/pkg/rabbitmq"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 func main() {
@@ -51,6 +52,6 @@ func main() {
 			return
 		}
 		log.Info(string(response))
-		//time.Sleep(500 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }

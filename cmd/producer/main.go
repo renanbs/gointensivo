@@ -6,6 +6,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/renanbs/gointensivo/internal/order/entity"
 	"math/rand"
+	"time"
 )
 
 func Publish(ch *amqp.Channel, order entity.Order) error {
@@ -41,8 +42,9 @@ func main() {
 	}
 	defer ch.Close()
 
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10000000000; i++ {
 		Publish(ch, GenerateOrder())
+		time.Sleep(300 * time.Millisecond)
 	}
 
 }
