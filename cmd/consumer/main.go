@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	_ "github.com/mattn/go-sqlite3"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/renanbs/gointensivo/internal/order/infra/database"
@@ -32,9 +31,19 @@ func main() {
 	}
 	defer ch.Close()
 	out := make(chan amqp.Delivery) // channel
-	go rabbitmq.Consume(ch, out)    // T2
+	forever := make(chan bool)
+	go rabbitmq.Consume(ch, out) // T2
 
-	for msg := range out {
+	qtdWorkers := 50
+	for i := 1; i <= qtdWorkers; i++ {
+		go worker(out, &uc, i)
+	}
+
+	<-forever
+}
+
+func worker(deliveryMessage <-chan amqp.Delivery, uc *usecase.CalculateFinalPriceUseCase, workerID int) {
+	for msg := range deliveryMessage {
 		var inputDTO usecase.OrderInputDTO
 		err := json.Unmarshal(msg.Body, &inputDTO)
 		if err != nil {
@@ -46,12 +55,13 @@ func main() {
 		}
 		msg.Ack(false)
 		//fmt.Println(outputDTO)
-		response, err := json.Marshal(outputDTO)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		log.Info(string(response))
-		time.Sleep(500 * time.Millisecond)
+		//response, err := json.Marshal(outputDTO)
+		//if err != nil {
+		//	fmt.Println(err)
+		//	return
+		//}
+		//log.Info(string(response))
+		log.Infof("Worker %d has processed order %s\n", workerID, outputDTO.ID)
+		time.Sleep(1 * time.Second)
 	}
 }
