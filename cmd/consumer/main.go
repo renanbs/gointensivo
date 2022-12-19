@@ -9,6 +9,7 @@ import (
 	"github.com/renanbs/gointensivo/internal/order/usecase"
 	"github.com/renanbs/gointensivo/pkg/rabbitmq"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"time"
 )
 
@@ -31,7 +32,7 @@ func main() {
 	}
 	defer ch.Close()
 	out := make(chan amqp.Delivery) // channel
-	forever := make(chan bool)
+	// forever := make(chan bool)      // if we didn't have the http server, this would not stop the execution
 	go rabbitmq.Consume(ch, out) // T2
 
 	qtdWorkers := 50
@@ -39,7 +40,17 @@ func main() {
 		go worker(out, &uc, i)
 	}
 
-	<-forever
+	// <-forever // if we didn't have the http server, this would not stop the execution
+	http.HandleFunc("/total", func(w http.ResponseWriter, r *http.Request) {
+		getTotalUC := usecase.GetTotalUseCase{OrderRepository: repository}
+		total, err := getTotalUC.Execute()
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+		}
+		json.NewEncoder(w).Encode(total)
+	})
+	http.ListenAndServe(":8080", nil)
 }
 
 func worker(deliveryMessage <-chan amqp.Delivery, uc *usecase.CalculateFinalPriceUseCase, workerID int) {
